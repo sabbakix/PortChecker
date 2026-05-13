@@ -4,6 +4,28 @@ import ipaddress
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
+_PROGRESS_LOCK = threading.Lock()
+_PROGRESS_WIDTH = 30
+# Width used to pad/erase the progress line. Sized to comfortably hold
+# bar + counters + IP:port label.
+_PROGRESS_LINE_WIDTH = 110
+
+
+def render_progress(done, total, current_label):
+    """Draw an in-place progress bar with the latest target being scanned."""
+    pct = (done / total) if total else 1.0
+    filled = int(_PROGRESS_WIDTH * pct)
+    bar = '█' * filled + '░' * (_PROGRESS_WIDTH - filled)
+    line = f"\r[{bar}] {done}/{total} ({pct * 100:5.1f}%) | scanning: {current_label}"
+    sys.stdout.write(line.ljust(_PROGRESS_LINE_WIDTH))
+    sys.stdout.flush()
+
+
+def clear_progress_line():
+    """Wipe the current progress line so a regular print can follow cleanly."""
+    sys.stdout.write('\r' + ' ' * _PROGRESS_LINE_WIDTH + '\r')
+    sys.stdout.flush()
+
 def check_port(target_ip, target_port, timeout=3, verbose=True) -> bool:
     """
     Tests if a specific TCP port is open on a target IP address.
@@ -199,6 +221,9 @@ if __name__ == "__main__":
     else:
         print("Using multi-threaded scanning for faster results...\n")
 
+        done = 0
+        render_progress(0, total_checks, "starting...")
+
         with ThreadPoolExecutor(max_workers=100) as executor:
             futures = [
                 executor.submit(scan_ip_port, ip, port, CONNECTION_TIMEOUT)
@@ -208,11 +233,19 @@ if __name__ == "__main__":
 
             for future in as_completed(futures):
                 ip, port, result = future.result()
-                if result:
-                    open_results.append((ip, port))
-                    print(f"✓ {ip}:{port} - OPEN")
-                else:
-                    closed_count += 1
+                with _PROGRESS_LOCK:
+                    done += 1
+                    if result:
+                        open_results.append((ip, port))
+                        clear_progress_line()
+                        print(f"✓ OPEN  {ip}:{port}")
+                    else:
+                        closed_count += 1
+                    render_progress(done, total_checks, f"{ip}:{port}")
+
+        # Move off the progress line after scanning finishes.
+        sys.stdout.write('\n')
+        sys.stdout.flush()
 
     # Summary
     print("\n" + "=" * 50)
