@@ -170,7 +170,7 @@ def scan_ip_port(ip, port, timeout):
     return ip, port, result
 
 if __name__ == "__main__":
-    print("--- Port Checker Script ---")
+    print("--- Port Checker ---")
     print("IP formats: single (192.168.1.1), CIDR (192.168.1.0/24), or range (192.168.1.1-192.168.1.10)")
     print("Port formats: single (80), range (1-1024), or list (22,80,443,8000-8010)")
     print()
