@@ -1,8 +1,19 @@
+import atexit
 import socket
 import sys
 import ipaddress
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+
+
+def _pause_on_exit():
+    """Keep the console open when launched from Explorer/double-click."""
+    try:
+        import msvcrt
+        print("\nPress any key to exit...")
+        msvcrt.getch()
+    except ImportError:
+        input("\nPress Enter to exit...")
 
 _PROGRESS_LOCK = threading.Lock()
 _PROGRESS_WIDTH = 30
@@ -170,6 +181,7 @@ def scan_ip_port(ip, port, timeout):
     return ip, port, result
 
 if __name__ == "__main__":
+    atexit.register(_pause_on_exit)
     print("--- Port Checker ---")
     print("IP formats: single (192.168.1.1), CIDR (192.168.1.0/24), or range (192.168.1.1-192.168.1.10)")
     print("Port formats: single (80), range (1-1024), or list (22,80,443,8000-8010)")
