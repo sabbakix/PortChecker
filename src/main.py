@@ -277,4 +277,3 @@ if __name__ == "__main__":
         for ip in sorted(by_ip, key=lambda x: ipaddress.IPv4Address(x)):
             ports_str = ", ".join(str(p) for p in sorted(by_ip[ip]))
             print(f"  - {ip}: {ports_str}")
-
